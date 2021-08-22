@@ -36,7 +36,7 @@ tasks:
       boresightRa: 0.0
       boresightDec: 0.0
       boresightRotAng: 90.0
-  estimateZernikesFamTask:
+  estimateZernikesCwfsTask:
     class: lsst.ts.wep.task.EstimateZernikesCwfsTask.EstimateZernikesCwfsTask
     config:
       # And here we specify the configuration settings originally defined in
