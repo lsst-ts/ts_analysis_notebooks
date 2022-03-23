@@ -15,6 +15,120 @@ rcParams["axes.titlesize"] = 18
 # common functions for AOS analysis
 
 
+def plotZernikeImageFromPickle(
+    expIntra,
+    yearMonthDay,
+    zkResultsFile=None,
+    collection="u/scichris/Latiss/postISRex",
+    repoDir="/repo/main/",
+):
+    """Plot the raw Zernikes and postISR image from pickle file.
+
+    Parameters
+    ----------
+    expIntra: int
+        Exposure number, eg. 487
+    yearMonthDay: str
+        A string defining year, month, and day of observations,
+        eg. "20210908"
+    zkResultsFile: str, optional
+        Name of the pickle file with Zernike results
+        (by default it is None, and the name of the file
+        is constructed from expIntra, yearMonthDay provided).
+    collection: str, optional
+        Collection name containing the postISRCCD. By
+        default is is u/scichris/Latiss/postISRex
+    repoDir : str, optional
+        Path to a directory containing butler.yaml file.
+        For Latiss tests default is /repo/main
+    """
+    # plot the figure ...
+    fig = plt.figure(figsize=(14, 5))
+
+    ################################
+    # left - plot the fit results  #
+    ################################
+
+    # add_axes([xmin,ymin,dx,dy])
+    ax1 = fig.add_axes([0, 0, 0.6, 1])
+
+    if zkResultsFile is None:
+        # use the provided year, month, day, exposure number, to
+        # construct file name
+        zkResultsFile = f"zerDic_{yearMonthDay}00{expIntra}_extra.npy"
+    print(f"Using results from {zkResultsFile}")
+    zkFit = np.load(zkResultsFile, allow_pickle=True).item()
+    outputZernikesRaw = zkFit["outputZernikesRaw"][
+        0
+    ]  # choose just one of the two arrays
+
+    for i in range(len(outputZernikesRaw)):
+
+        ax1.plot(
+            np.arange(4, 23), 1000 * outputZernikesRaw[i], "-d", label=f"donut {i}"
+        )
+
+    ax1.set_xlabel(
+        "Zernike Number",
+    )
+    ax1.set_ylabel(
+        "Zernike Coefficient [nanometers]",
+    )
+    ax1.legend(fontsize=14, loc="center left", bbox_to_anchor=[0.55, 0.65], ncol=2)
+    ax1.set_xticks(np.arange(4, 23)[::2])
+    ax1.grid()
+
+    ax1.set_title(f"auxTel test data {yearMonthDay}", fontsize=18)
+
+    ##################################
+    # right - plot the postISR image #
+    ##################################
+
+    ax2 = fig.add_axes([0.6, 0, 0.4, 1])
+    butler = dafButler.Butler(repoDir)
+    datasetRefOrType = "postISRCCD"
+    exposure_intra = butler.get(
+        datasetRefOrType,
+        dataId={
+            "instrument": "LATISS",
+            "detector": 0,
+            "exposure": int(f"{yearMonthDay}00{expIntra}"),
+        },
+        collections=[collection],
+    )
+    zscale = ZScaleInterval()
+    data = exposure_intra.image.array
+    vmin, vmax = zscale.get_limits(data)
+
+    ax2.imshow(data, origin="lower", vmin=vmin, vmax=vmax)
+
+    donutStampsExtra = zkFit["donutStampsExtra"][0]  # choose just one of the two arrays
+    nrows = len(donutStampsExtra)
+    for i in range(nrows):
+        donut = donutStampsExtra[i]
+        xy = donut.centroid_position
+
+        # plot the cross marking that the donut was used
+        ax2.scatter(xy[0], xy[1], s=200, marker="+", c="m", lw=4)
+
+        # plot the donut number on the plot
+        xtext, ytext = xy[0], xy[1]
+        ytext -= 60
+        if xtext + 100 > 4096:
+            xtext -= 250
+        if len(str(i)) > 1:  # move to the left label thats too long
+            # print(i, 'moving')
+            xtext -= 340
+        else:
+            xtext -= 260
+        ax2.text(xtext, ytext, f"{i}", fontsize=17, c="white")
+    ax2.yaxis.tick_right()
+    ax2.set_xlabel("x [px]")
+    ax2.set_ylabel("y [px]")
+    ax2.yaxis.set_label_position("right")
+    ax2.set_title(f"exp{expIntra}")
+
+
 def plotZernikeImage(
     repoDir="/repo/main/",
     collection="u/scichris/Latiss/test",
@@ -205,10 +319,13 @@ def plotZernikeImage(
 
 
 def previewExposures(
-    yearMonthDay, expStart, expEnd,
+    yearMonthDay,
+    expStart,
+    expEnd,
     datasetRefOrType="raw",
     collection="LATISS/raw/all",
-    instrument="LATISS", detector=0
+    instrument="LATISS",
+    detector=0,
 ):
     """Plot auxTel exposures in a given exposure ID range.
 
