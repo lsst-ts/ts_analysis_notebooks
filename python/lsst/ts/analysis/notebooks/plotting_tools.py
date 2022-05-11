@@ -30,14 +30,14 @@ def get_zernikes_donuts_from_pickle(zk_results_file):
     donut_stamps: Collection of postage stamps as
             lsst.afw.image.maskedImage.MaskedImage with additional metadata.
     """
-    zkFit = np.load(zk_results_file, allow_pickle=True).item()
+    zk_fit = np.load(zk_results_file, allow_pickle=True).item()
 
     # select only the first element as
     # EstimateZernikesBase stores two
     # identical arrays to match the
     # structure dimension to input dimension
-    output_zernikes_raw = zkFit["outputZernikesRaw"][0]
-    donut_stamps = zkFit["donutStampsExtra"][0]
+    output_zernikes_raw = zk_fit["outputZernikesRaw"][0]
+    donut_stamps = zk_fit["donutStampsExtra"][0]
 
     return output_zernikes_raw, donut_stamps
 
@@ -106,11 +106,11 @@ def get_zernikes_donuts_postisr_from_butler(repo_dir, collection, instrument, de
     # read in the data from the butler
     butler = dafButler.Butler(repo_dir)
 
-    dataId0 = dict(instrument=instrument)
+    data_id0 = dict(instrument=instrument)
     dataset = next(
         iter(
             butler.registry.queryDatasets(
-                datasetType="postISRCCD", dataId=dataId0, collections=[collection]
+                datasetType="postISRCCD", dataId=data_id0, collections=[collection]
             )
         )
     )
@@ -118,26 +118,26 @@ def get_zernikes_donuts_postisr_from_butler(repo_dir, collection, instrument, de
     exposure_number = dataset.dataId["exposure"]
 
     # construct a dataId  for postISR
-    dataId = {
+    data_id = {
         "detector": detector,
         "instrument": instrument,
         "exposure": exposure_number,
     }
 
     # read the postISR exposure
-    exposure = butler.get("postISRCCD", dataId, collections=[collection])
+    exposure = butler.get("postISRCCD", data_id, collections=[collection])
 
     # construct a dataId for zernikes and donut catalog:
     # switch exposure to visit
-    dataId = {"detector": detector, "instrument": instrument, "visit": exposure_number}
+    data_id = {"detector": detector, "instrument": instrument, "visit": exposure_number}
 
     # the raw Zernikes
     zernikes_raw = butler.get(
-        "zernikeEstimateRaw", dataId=dataId, collections=[collection]
+        "zernikeEstimateRaw", dataId=data_id, collections=[collection]
     )
 
     donut_stamps = butler.get(
-        "donutStampsExtra", dataId=dataId, collections=[collection]
+        "donutStampsExtra", dataId=data_id, collections=[collection]
     )
 
     return zernikes_raw, donut_stamps, exposure
