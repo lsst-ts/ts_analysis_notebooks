@@ -41,6 +41,7 @@ tasks:
       # Camera pixel size in m
       instPixelSize: 10.0e-6
       opticalModel: 'onAxis'
+      # Default CustomMagLimit mag range is (-99, 99)
       donutSelector.useCustomMagLimit: True
       # Pick the brightest source only
       donutSelector.sourceLimit: 1
@@ -54,3 +55,6 @@ tasks:
       initialCutoutPadding: 40
   calcZernikesTask:
     class: lsst.ts.wep.task.CalcZernikesTask.CalcZernikesTask
+    config:
+      # For LATISS do not transpose
+      transposeImages: False
